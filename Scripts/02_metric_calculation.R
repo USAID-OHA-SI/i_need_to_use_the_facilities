@@ -117,7 +117,6 @@
   #bind metric and relative size dfs
   df_link_metric <- df_link_metric %>% 
     left_join(df_link_size, by = c("orgunituid", "mech_code")) %>% 
-    filter(!is.na(metric_value)) %>%
     select(-c(hts_tst_pos, tx_new))
 
   rm(df_link, df_link_size)
@@ -142,7 +141,7 @@
     pivot_wider(names_from = indicator,
                 names_glue = "{tolower(indicator)}",
                 values_fill = 0) %>%
-    mutate(metric = "TX_NET_NEW to TX_CURR ratio",
+    mutate(metric = "TX_NET_NEW to TX_CURR Ratio",
            metric_value = tx_net_new/tx_curr,
            metric_value = ifelse(is.infinite(metric_value), 0, metric_value)) 
   
@@ -165,7 +164,6 @@
   #bind metric and relative size dfs
   df_txgr_metric <- df_txgr_metric %>% 
     left_join(df_txgr_size, by = c("orgunituid", "mech_code")) %>% 
-    filter(!is.na(metric_value)) %>%
     select(-c(tx_curr, tx_net_new))
 
   rm(df_txgr, df_txgr_size)
@@ -214,7 +212,6 @@
   #bind metric and relative size dfs
   df_iit_metric <- df_iit_metric %>% 
     left_join(df_iit_size, by = c("orgunituid", "mech_code")) %>% 
-    filter(!is.na(metric_value)) %>%
     select(-c(tx_ml, tx_curr,tx_curr_lag1, tx_new))
   
   rm(df_iit, df_iit_size)
@@ -263,7 +260,6 @@
   #bind metric and relative size dfs
   df_vlc_metric <- df_vlc_metric %>% 
     left_join(df_vlc_size, by = c("orgunituid", "mech_code")) %>%
-    filter(!is.na(metric_value)) %>% 
     select(-c(tx_curr, tx_curr_lag2, tx_pvls_d, tx_pvls))
   
   rm(df_vlc_size)
@@ -303,7 +299,6 @@
   #bind metric and relative size dfs
   df_vls_metric <- df_vls_metric %>% 
     left_join(df_vls_size, by = c("orgunituid", "mech_code")) %>%
-    filter(!is.na(metric_value)) %>% 
     select(-c(tx_curr, tx_curr_lag2, tx_pvls_d, tx_pvls))
   
   rm(df_vl, df_vls_size)
