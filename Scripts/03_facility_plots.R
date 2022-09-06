@@ -100,7 +100,7 @@
     facet_wrap(metric_site_direction ~ ., scale = "free", ncol = 1) +
     scale_x_continuous(label = comma) +
     labs(x = NULL, y = NULL,
-         subtitle = glue("Facility metric values compared with PSNU distribution in {site_meta$period}")
+         subtitle = glue("{site_sel} metric values compared against {site_meta$psnu} distribution in {site_meta$period}")
          ) +
     coord_cartesian(clip = "off") +
     si_style_ygrid() +
@@ -120,7 +120,7 @@
     facet_wrap(metric ~ ., scale = "free", ncol = 1) +
     si_style_nolines() +
     labs(x = NULL, y = NULL,
-         subtitle = "Facility 6 period trend across metrics") +
+         subtitle = glue("{site_sel} 6 period trend across metrics")) +
     coord_cartesian(clip = "off") +
     theme(axis.text = element_blank(),
           strip.text = element_blank(),
@@ -130,7 +130,7 @@
   v1 + v2  +
     plot_layout(widths = c(2, 1)) +
     plot_annotation(title = glue("{toupper(site_sel)}"),
-                    subtitle = glue("{site_meta$country} facility supported by {site_meta$funding_agency} {site_meta$mech_code}"),
+                    subtitle = glue("{site_meta$country} facility in {site_meta$psnu} supported by {site_meta$funding_agency} {site_meta$mech_code}"),
                     caption = glue("Note: Facilities are sized proportional to their quintile group by relevant indicator 
                         Source: {api_source}"),
                     theme = si_style())
