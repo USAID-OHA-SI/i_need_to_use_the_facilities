@@ -7,6 +7,16 @@
 # UPDATED: 
 
 
+# FUNCTION - ADD PSNU ROW -------------------------------------------------
+
+append_psnu_total <- function(df){
+  df_psnu <- df %>% 
+    dplyr::mutate(orgunit = glue::glue("PSNU LEVEL - {psnu}"),
+                  orgunituid = glue::glue("PSNU LEVEL - {psnu}"),
+                  mech_code = glue::glue("PSNU LEVEL - {psnu}"))
+  
+  dplyr::bind_rows(df, df_psnu)
+}
 
 # FUNCTION - AGGREGATE AGE ------------------------------------------------
 
@@ -20,6 +30,24 @@ agg_age <- function(df, total = TRUE){
   }
   
   return(df)
+}
+
+
+# FUNCTION - SEPARATE PSNU VALUES -----------------------------------------
+
+sep_psnu <- function(df){
+  
+  value_cols <- df %>% 
+    select(where(is.numeric), -metric_value) %>% 
+    names()
+  
+  df <- df %>% 
+    dplyr::mutate(metric_value_psnu = dplyr::case_when(stringr::str_detect(orgunit, "PSNU LEVEL") ~ metric_value),
+                  metric_value = ifelse(stringr::str_detect(orgunit, "PSNU LEVEL"), NA, metric_value))
+    
+  df %>% 
+    dplyr::mutate(dplyr::across(any_of(value_cols), ~ ifelse(stringr::str_detect(orgunit, "PSNU LEVEL"), NA, .)))
+
 }
 
 # FUNCTION - IDENTIFY DIRECTION -------------------------------------------

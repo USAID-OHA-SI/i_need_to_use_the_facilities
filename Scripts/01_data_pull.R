@@ -1,4 +1,4 @@
-# PROJECT:  i_need_to_use_the_facilites
+# PROJECT:  i_need_to_use_the_facilities
 # AUTHOR:   A.Chafetz | USAID
 # PURPOSE:  API pull of site level data
 # REF ID:   8c5a97cb 

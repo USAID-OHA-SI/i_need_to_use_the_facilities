@@ -1,4 +1,4 @@
-# PROJECT:  i_need_to_use_the_facilites
+# PROJECT:  i_need_to_use_the_facilities
 # AUTHOR:   A.Chafetz | USAID
 # PURPOSE:  metric calculations
 # REF ID:   dc3e6ba7 
@@ -25,12 +25,23 @@
     vroom(col_types = c(value  = "d", .default = "c"))
   
 
+# AGGREGATE MECH CODES TO SITE --------------------------------------------
+
+  df_datim <- df_datim %>% 
+    group_by(across(c(where(is.character), -mech_code))) %>% 
+    summarise(mech_code = paste0(mech_code, collapse = " | "),
+              value = sum(value, na.rm = TRUE),
+              .groups = "drop")
+  
 # HTS ---------------------------------------------------------------------
 
   #filter to indicators needed for calculating test to pos ratio
   df_hts <- df_datim %>% 
     filter(indicator %in% c("HTS_TST", "HTS_TST_POS"))
 
+  #append PSNU values
+  df_hts <- append_psnu_total(df_hts)
+  
   #aggregate ages (<15/15+)
   df_hts <- agg_age(df_hts, total) 
 
@@ -42,6 +53,9 @@
     mutate(metric = "Test to Positive Ratio",
            metric_value = round(hts_tst/hts_tst_pos),
            metric_value = ifelse(is.infinite(metric_value), 0, metric_value)) 
+  
+  #separate psnu values
+  df_hts_metric <- sep_psnu(df_hts_metric) 
   
   #calculate if metric increased/decreased from last quarter (note: no complete, may have missing quarters)
   df_hts_metric <- identify_direction(df_hts_metric)
@@ -69,6 +83,9 @@
   df_link <- df_datim %>% 
     filter(indicator %in% c("HTS_TST_POS", "TX_NEW"))
   
+  #append PSNU values
+  df_link <- append_psnu_total(df_link)
+  
   #aggregate ages (<15/15+)
   df_link <- agg_age(df_link, total)
   
@@ -80,6 +97,9 @@
     mutate(metric = "Proxy Linkage",
            metric_value = tx_new/hts_tst_pos,
            metric_value = ifelse(is.infinite(metric_value), 0, metric_value)) 
+  
+  #separate psnu values
+  df_link_metric <- sep_psnu(df_link_metric) 
   
   #calculate if metric increased/decreased from last quarter (note: no complete, may have missing quarters)
   df_link_metric <- identify_direction(df_link_metric)
@@ -104,13 +124,15 @@
   
 # TX GROWTH ---------------------------------------------------------------
 
-    
   #filter to indicators needed for NN to curr ratio
   df_txgr <- df_datim %>% 
     filter(indicator == "TX_CURR")
   
   #calculate net new
   df_txgr <- add_nn(df_txgr)
+  
+  #append PSNU values
+  df_txgr <- append_psnu_total(df_txgr)
   
   #aggregate ages (<15/15+)
   df_txgr <- agg_age(df_txgr, total)
@@ -123,6 +145,9 @@
     mutate(metric = "TX_NET_NEW to TX_CURR ratio",
            metric_value = tx_net_new/tx_curr,
            metric_value = ifelse(is.infinite(metric_value), 0, metric_value)) 
+  
+  #separate psnu values
+  df_txgr_metric <- sep_psnu(df_txgr_metric) 
   
   #calculate if metric increased/decreased from last quarter (note: no complete, may have missing quarters)
   df_txgr_metric <-identify_direction(df_txgr_metric)
@@ -151,6 +176,9 @@
   df_iit <- df_datim %>% 
     filter(indicator %in% c("TX_ML", "TX_CURR","TX_NEW"))
   
+  #append PSNU values
+  df_iit <- append_psnu_total(df_iit)
+  
   #aggregate ages (<15/15+)
   df_iit <- agg_age(df_iit, total)
   
@@ -166,6 +194,9 @@
            metric_value = tx_ml / (tx_curr_lag1 + tx_new),
            metric_value = ifelse(is.infinite(metric_value), 0, metric_value)) %>% 
     ungroup()
+  
+  #separate psnu values
+  df_iit_metric <- sep_psnu(df_iit_metric) 
   
   #calculate if metric increased/decreased from last quarter (note: no complete, may have missing quarters)
   df_iit_metric <- identify_direction(df_iit_metric)
@@ -190,10 +221,12 @@
 
 # VLC ---------------------------------------------------------------------
 
-  
   #filter to indicators needed for calculating IIT
   df_vl <- df_datim %>% 
     filter(indicator %in% c("TX_CURR","TX_PVLS_D", "TX_PVLS"))
+  
+  #append PSNU values
+  df_vl <- append_psnu_total(df_vl)
   
   #aggregate ages (<15/15+)
   df_vl <- agg_age(df_vl, total)
@@ -210,6 +243,9 @@
            metric_value = tx_pvls_d / tx_curr_lag2,
            metric_value = ifelse(is.infinite(metric_value), 0, metric_value)) %>% 
     ungroup()
+  
+  #separate psnu values
+  df_vlc_metric <- sep_psnu(df_vlc_metric) 
   
   #calculate if metric increased/decreased from last quarter (note: no complete, may have missing quarters)
   df_vlc_metric <- identify_direction(df_vlc_metric)
@@ -248,6 +284,9 @@
            metric_value = ifelse(is.infinite(metric_value), 0, metric_value)) %>% 
     ungroup()
   
+  #separate psnu values
+  df_vls_metric <- sep_psnu(df_vls_metric) 
+  
   #calculate if metric increased/decreased from last quarter (note: no complete, may have missing quarters)
   df_vls_metric <- identify_direction(df_vls_metric)
   
@@ -269,8 +308,25 @@
   
   rm(df_vl, df_vls_size)
 
-# COMBINE -----------------------------------------------------------------
+  
 
+# OVC ---------------------------------------------------------------------
+
+  last2_pd <- glamr::pepfar_data_calendar %>% 
+    dplyr::filter(entry_close < Sys.Date(),
+                  type == "initial") %>%
+    dplyr::slice_tail(n = 2) %>% 
+    dplyr::mutate(pd = glue("FY{str_sub(fiscal_year, -2)}Q{quarter}")) %>% 
+    pull()
+  
+  ovc_org <- df_datim %>% 
+    filter(period %in% last2_pd,
+           indicator == "OVC_SERV",
+           value > 0) %>% 
+    distinct(orgunituid) %>% 
+    pull()
+
+# COMBINE -----------------------------------------------------------------
 
   df_metrics <- bind_rows(df_hts_metric,
                           df_link_metric,
@@ -278,6 +334,9 @@
                           df_iit_metric,
                           df_vlc_metric,
                           df_vls_metric)
+  
+  df_metrics <- df_metrics %>% 
+    mutate(ovc_reported = orgunituid %in% ovc_org, .after = orgunit)
 
 # EXPORT ------------------------------------------------------------------
 
