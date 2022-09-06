@@ -278,4 +278,15 @@
                           df_iit_metric,
                           df_vlc_metric,
                           df_vls_metric)
+
+# EXPORT ------------------------------------------------------------------
+
+  curr_pd <- glamr::pepfar_data_calendar %>% 
+    dplyr::filter(entry_close < Sys.Date(),
+                  type == "initial") %>%
+    dplyr::slice_tail() %>% 
+    dplyr::mutate(pd = glue("FY{str_sub(fiscal_year, -2)}Q{quarter}")) %>% 
+    pull()
+  
+  write_csv(df_metrics, glue("Dataout/{curr_pd}_facility-metrics.csv"))  
   
