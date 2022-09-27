@@ -4,7 +4,7 @@
 # REF ID:   dc3e6ba7 
 # LICENSE:  MIT
 # DATE:     2022-09-06
-# UPDATED: 
+# UPDATED:  2022-09-27
 
 # DEPENDENCIES ------------------------------------------------------------
   
@@ -336,10 +336,9 @@
 # EXPORT ------------------------------------------------------------------
 
   curr_pd <- glamr::pepfar_data_calendar %>% 
-    dplyr::filter(entry_close < Sys.Date(),
-                  type == "initial") %>%
+    dplyr::filter(entry_close < Sys.Date()) %>%
     dplyr::slice_tail() %>% 
-    dplyr::mutate(pd = glue("FY{str_sub(fiscal_year, -2)}Q{quarter}")) %>% 
+    dplyr::mutate(pd = glue("FY{str_sub(fiscal_year, -2)}Q{quarter}{stringr::str_sub(type, end = 1)}")) %>% 
     pull()
   
   write_csv(df_metrics, glue("Dataout/{curr_pd}_facility-metrics.csv"))  
