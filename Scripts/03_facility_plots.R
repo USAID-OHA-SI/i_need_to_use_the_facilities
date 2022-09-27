@@ -4,12 +4,13 @@
 # REF ID:   771a3d77 
 # LICENSE:  MIT
 # DATE:     2022-09-06
-# UPDATED: 
+# UPDATED:  2022-09-27
 
 # DEPENDENCIES ------------------------------------------------------------
   
   library(tidyverse)
   library(gagglr)
+  library(grabr)
   library(glue)
   library(scales)
   library(extrafont)
@@ -17,6 +18,8 @@
   library(patchwork)
   library(ggtext)
   library(vroom)
+  library(gisr)
+  library(sf)
   
 
 # GLOBAL VARIABLES --------------------------------------------------------
@@ -24,8 +27,9 @@
   ref_id <- "771a3d77"
 
   file_path <- return_latest("Dataout", "facility-metrics")
-  
   file_path_datim <- return_latest("Data", "DATIM-API")
+  file_path_coords <- return_latest("Data", "DATIM-coordinates")
+  
   
   api_source <- glue("{basename(file_path_datim) %>% str_sub(end = 6)} DATIM API [{file.info(file_path_datim)$ctime %>% format('%Y-%m-%d')}]")
   
@@ -34,11 +38,27 @@
   df_metrics <- vroom(file_path, 
                       col_types = c(metric_value  = "d", 
                                     metric_value_psnu  = "d", 
-                                    rel_size_qtile = "d", ovc_reported= "l",
+                                    rel_size_qtile = "d",
+                                    ovc_reported= "l",
                                     .default = "c"))
 
+  df_coords <- vroom(file_path_coords,
+                     col_types = c(latitude = "d",
+                                   longitude = "d",
+                                   .default = "c"))
+  
+  #download from https://drive.google.com/drive/folders/1cvNxiRxl-g3qEP_ON8FT_FxmHsHblDuz
+  spdf_pepfar <- get_vcpolygons() 
+  
 # MUNGE -------------------------------------------------------------------
 
+  #bind coordinates
+  df_metrics <- df_metrics %>%
+    tidylog::left_join(df_coords, by = "orgunituid") %>%
+    mutate(has_coords = !is.na(latitude)) %>%
+    relocate(psnuuid, .after = psnu) %>% 
+    relocate(has_coords, latitude, longitude, .after = orgunit)
+  
   #order metrics for plot
   df_metrics <- df_metrics %>% 
     mutate(metric = recode(metric,
@@ -62,7 +82,8 @@
   site_meta <- df_metrics %>% 
     filter(orgunituid == rand_site,
            period == max(period)) %>% 
-    distinct(country, psnu, period, funding_agency, mech_code)
+    distinct(country, psnu, psnuuid, period, funding_agency, mech_code,
+             has_coords, latitude, longitude)
   
   psnu_sel <- df_metrics %>% 
     filter(orgunituid == rand_site) %>% 
@@ -84,6 +105,16 @@
            period == max(period)) %>% 
     left_join(df_site_direction, by = c("metric")) %>% 
     mutate(metric_site_direction = fct_inorder(metric_site_direction))
+  
+  
+  spdf_psnu <- spdf_pepfar %>% 
+    extract_boundaries(country = site_meta$country, 
+                       level = get_ouorglevel(
+                         operatingunit = site_meta$country,
+                         # country = site_meta$country,
+                         org_type = "prioritization"
+                       ))
+  
   
   v1 <- df_curr_psnu %>% 
     ggplot(aes(metric_value, metric_site_direction)) +
@@ -172,4 +203,25 @@
     labs(x = NULL, y = NULL) +
     theme(axis.text = element_blank())
   
+  
+  v5 <- site_meta %>% 
+    ggplot() +
+    geom_sf(data = spdf_psnu, aes(geometry = geometry), color = matterhorn,
+            fill = trolley_grey_light, alpha = .2) +
+    geom_sf(data = spdf_psnu %>% filter(uid == site_meta$psnuuid), aes(geometry = geometry), color = matterhorn,
+            fill = old_rose_light, alpha = .2) +
+    geom_point(aes(longitude, latitude), shape = 23, color = "white", fill = old_rose) +
+    labs(x = NULL, y = NULL) +
+    si_style_map()
+  
+  
+  (plot_spacer() + v4 + v5) /
+  (v1 + v2 + v3)  +
+    plot_layout(heights =c(1, 4),
+                widths = c(2, .25, 1)) +
+    plot_annotation(title = glue("{toupper(site_sel)}"),
+                    subtitle = glue("{site_meta$country} facility in {site_meta$psnu} supported by {site_meta$funding_agency} {site_meta$mech_code}"),
+                    caption = glue("Note: Facilities are sized proportional to their quintile group by relevant indicator 
+                        Source: {api_source}"),
+                    theme = si_style())
   

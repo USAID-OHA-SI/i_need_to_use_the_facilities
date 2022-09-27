@@ -34,16 +34,11 @@
   
   #pull site coordinates
   df_coords <- ctry_list %>%
-    pmap_dfr(~pull_coords(..1, ..2, ..3))
+    pmap_dfr(~pull_coords(..1, ..2, ..3, ..4))
 
 # MUNGE -------------------------------------------------------------------
 
   df_pull <- clean_pull(df_pull)
- 
-  df_pull <- df_pull %>% 
-    left_join(df_coords, by = "orgunituid") %>% 
-    mutate(has_coords = !is.na(latitude)) %>%
-    relocate(has_coords, latitude, longitude, .after = orgunit)
   
 # EXPORT ------------------------------------------------------------------
 
@@ -54,5 +49,6 @@
     pull()
   
   write_csv(df_pull, glue("Data/{curr_pd}_DATIM-API.csv"))
+  write_csv(df_coords, glue("Data/{curr_pd}_DATIM-coordinates.csv"))
  
   
