@@ -4,7 +4,7 @@
 # REF ID:   38ecc09e 
 # LICENSE:  MIT
 # DATE:     2022-09-06
-# UPDATED: 
+# UPDATED:  2022-09-27
 
 # FUNCTION - BUILD URL ----------------------------------------------------
 
@@ -145,3 +145,47 @@
     
     return(df_clean)
   }
+  
+
+# FUNCTION - GET COORDINATES ----------------------------------------------
+
+  pull_coords <- function(cntry, ou_uid, org_lvl, baseurl = "https://final.datim.org/"){
+    
+    print(paste("Running DATIM API for coordinates in", cntry,  Sys.time(),
+                sep = " ... "))
+    
+    paste0(baseurl,
+           "api/organisationUnits?filter=path:like:", ou_uid,
+           "&filter=level:eq:", org_lvl, "&",
+           "&fields=id,geometry&paging=false") %>%
+      httr::GET(httr::authenticate(glamr::datim_user(),glamr::datim_pwd())) %>%
+      httr::content("text") %>%
+      jsonlite::fromJSON() %>%
+      purrr::pluck("organisationUnits") %>%
+      tibble::as_tibble() %>%
+      clean_coords()
+  
+  }  
+
+
+# FUNCTION - CLEAN COORDINATES --------------------------------------------
+
+  clean_coords <- function(df){
+    
+    #limit only to sites with coordinates
+    df <- dplyr::filter(df, geometry$type == "Point") 
+    
+    #if no sites, return null
+    if(nrow(df) < 1)
+      return(NULL)
+    
+    #return uid + lat + long
+    df %>% 
+      dplyr::mutate(coordinates = geometry$coordinates) %>% 
+      dplyr::select(-geometry) %>% 
+      tidyr::unnest_wider(coordinates, names_sep = "_") %>% 
+      dplyr::rename(longitude = "coordinates_1", latitude = "coordinates_2") %>%
+      dplyr::mutate_at(dplyr::vars("longitude", "latitude"), as.double) %>%
+      dplyr::select(orgunituid = id, latitude, longitude)
+  }
+  

@@ -4,7 +4,7 @@
 # REF ID:   8c5a97cb 
 # LICENSE:  MIT
 # DATE:     2022-09-01
-# UPDATED:  2022-09-06
+# UPDATED:  2022-09-27
 
 # DEPENDENCIES ------------------------------------------------------------
   
@@ -28,22 +28,29 @@
 
 # RUN API -----------------------------------------------------------------
   
+  #pull data
   df_pull <- ctry_list %>%
     pmap_dfr(~pull_results(..1, ..2, ..3, ..4))
   
+  #pull site coordinates
+  df_coords <- ctry_list %>%
+    pmap_dfr(~pull_coords(..1, ..2, ..3))
 
 # MUNGE -------------------------------------------------------------------
 
   df_pull <- clean_pull(df_pull)
  
+  df_pull <- df_pull %>% 
+    left_join(df_coords, by = "orgunituid") %>% 
+    mutate(has_coords = !is.na(latitude)) %>%
+    relocate(has_coords, latitude, longitude, .after = orgunit)
   
 # EXPORT ------------------------------------------------------------------
 
   curr_pd <- glamr::pepfar_data_calendar %>% 
-    dplyr::filter(entry_close < Sys.Date(),
-                  type == "initial") %>%
+    dplyr::filter(entry_close < Sys.Date()) %>%
     dplyr::slice_tail() %>% 
-    dplyr::mutate(pd = glue("FY{str_sub(fiscal_year, -2)}Q{quarter}")) %>% 
+    dplyr::mutate(pd = glue("FY{str_sub(fiscal_year, -2)}Q{quarter}{stringr::str_sub(type, end = 1)}")) %>% 
     pull()
   
   write_csv(df_pull, glue("Data/{curr_pd}_DATIM-API.csv"))
