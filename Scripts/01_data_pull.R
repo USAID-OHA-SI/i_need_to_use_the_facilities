@@ -4,7 +4,7 @@
 # REF ID:   8c5a97cb 
 # LICENSE:  MIT
 # DATE:     2022-09-01
-# UPDATED:  2022-09-27
+# UPDATED:  2022-09-28
 
 # DEPENDENCIES ------------------------------------------------------------
   
@@ -12,6 +12,8 @@
   library(gagglr)
   library(grabr)
   library(glue)
+  library(googledrive)
+  library(lubridate)
 
   source("Scripts/99_utility_functions.R")  
 
@@ -19,6 +21,23 @@
   
   load_secrets()
   
+
+# DOWNLOAD VCPOLYGONS -----------------------------------------------------
+
+  #shapefile for all PEPFAR countries and PSNUs
+  # df_zip <- drive_ls(as_id("1cvNxiRxl-g3qEP_ON8FT_FxmHsHblDuz"), 
+  #                    "VcPepfarPolygons") %>%
+  #   mutate(created_time = map_chr(drive_resource, "createdTime") %>%
+  #            ymd_hms(tz = "EST")) %>%
+  #   slice_max(order_by = created_time, n = 1)
+  # 
+  # drive_download(df_zip, 
+  #                file.path(si_path("path_vector"),df_zip$name), 
+  #                overwrite = TRUE) #set_paths(folderpath_vector = "..")
+  # 
+  # unzip(file.path(si_path("path_vector"),df_zip$name), 
+  #       exdir = si_path("path_vector"))
+    
 # IDENTIFY INPUTS FOR API -------------------------------------------------
   
   #country and level list
