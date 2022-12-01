@@ -29,9 +29,17 @@
 
   df_datim <- df_datim %>% 
     group_by(across(c(where(is.character), -mech_code))) %>% 
-    summarise(mech_code = paste0(mech_code, collapse = " | "),
+    summarise(mech_code = paste(mech_code, collapse = "|"),
               value = sum(value, na.rm = TRUE),
               .groups = "drop")
+  
+  #aggregate again so that multiple agencies are combined
+  # df_datim <- df_datim %>% 
+  #   unite(mech_code, c(funding_agency, mech_code), sep = ": ") %>% 
+  #   group_by(across(c(where(is.character), -mech_code))) %>% 
+  #   summarise(mech_code = paste(mech_code, collapse = "|"),
+  #             value = sum(value, na.rm = TRUE),
+  #             .groups = "drop")
   
 # HTS ---------------------------------------------------------------------
 
